@@ -38,6 +38,7 @@ option(ENABLE_LTO "Enable to add Link Time Optimization." ON)
 set(LIBRARY_NAME "lib")
 set(UNIT_TEST_NAME "unit_tests")
 set(EXECUTABLE_NAME "main")
+set(CLIENT_EXECUTABLE_NAME "matrix_client")
 
 # CMAKE MODULES
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
@@ -102,6 +103,7 @@ add_subdirectory(external)
 add_subdirectory(src)
 add_subdirectory(app)
 add_subdirectory(tests)
+add_subdirectory(client)
 
 # INSTALL TARGETS
 

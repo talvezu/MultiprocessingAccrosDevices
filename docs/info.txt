@@ -1,0 +1,8 @@
+for post with params
+curl -X POST http://127.0.0.1:8000/enable_stream?client_id=3
+client_id = request.args.get('client_id')
+
+
+for post with body
+curl -X POST http://127.0.0.1:8000/enable_stream -d "client_id=2"
+client_id = request.form.get('client_id')

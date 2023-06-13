@@ -97,6 +97,7 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+__pycache__/
 
 # Files built by Visual Studio
 *_i.c
@@ -146,3 +147,6 @@ ipch/
 
 # Visual Studio Trace Files
 *.e2e
+
+# Files Generated for Docker Environment
+docker_env/*

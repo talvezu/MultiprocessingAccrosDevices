@@ -1,4 +1,36 @@
-# Template For C++ Projects
+# Expandable flask server which serves streams
+    python
+      includes
+        - utils
+          getting ips of server containers.
+        - proxy, WIP for manual load balance, currently on hold
+          due to using nginx instance as load balancer
+        - tests/test_server_pool check the proxy and the utils
+        - server.py main file
+          a flask server that accepts client and generate time stamp
+          periodically
+
+    Docker
+      includes all files needed for rendering and running server instance
+
+      server.yaml list the servers required.
+      script for rendering - generate_conf_files.py
+        - nginx.conf.j2
+        - docker_compose.j2
+      docker compose then spawns
+        - N server container
+        - 1 nginx which is a load balancer between the servers
+
+      Docker folder is being used by
+        - make build_server_container
+            generate server_app_image which will be used for
+            server instances
+        - run_pod, which runs build_server_container
+            and executes docker_env (originally copied from Docker to docker_env)
+
+    Client
+      c++ executable (matrix_client) that address the load balancer
+      and received a periodic message of time stamp.
 
 ![C++](https://img.shields.io/badge/C%2B%2B-11%2F14%2F17%2F20%2F23-blue)
 ![License](https://camo.githubusercontent.com/890acbdcb87868b382af9a4b1fac507b9659d9bf/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f6c6963656e73652d4d49542d626c75652e737667)
@@ -27,6 +59,9 @@ This is a template for C++ projects. What you get:
 ├── app
 │   ├── CMakesLists.txt
 │   └── main.cc
+├── client (executable - matrix_client)
+│   ├── CMakesLists.txt
+│   └── client.cpp
 ├── cmake
 │   └── cmake modules
 ├── docs
@@ -35,13 +70,28 @@ This is a template for C++ projects. What you get:
 ├── external
 │   ├── CMakesLists.txt
 │   ├── ...
+├── python
+│   ├── server.py
+│   ├── proxy
+|   │   └── ....
+│   ├── utils
+|   │   └── ....
+│   └── tests
 ├── src
 │   ├── CMakesLists.txt
 │   ├── my_lib.h
 │   └── my_lib.cc
-└── tests
-    ├── CMakeLists.txt
-    └── main.cc
+├── tests
+│   ├── CMakeLists.txt
+│   └── main.cc
+└── Docker
+    ├── docker_compose.yaml.j2
+    ├── docker_env.sh
+    ├── Dockerfile
+    ├── Dockerfile_flask
+    ├── generate_conf_files.py
+    ├── nginx.conf.j2
+    └── servers.yaml
 ```
 
 Library code goes into [src/](src/), main program code in [app/](app) and tests go in [tests/](tests/).

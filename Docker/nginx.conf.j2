@@ -1,0 +1,21 @@
+events {
+    worker_connections 1024;
+    multi_accept on;
+}
+
+http {
+    upstream backend {
+        # ip_hash; consider if server load is high
+    {% for server in servers %}
+        server {{ server }}:8000;
+    {% endfor %}
+    }
+
+    server {
+        listen 80;
+
+        location / {
+            proxy_pass http://backend;
+        }
+    }
+}
