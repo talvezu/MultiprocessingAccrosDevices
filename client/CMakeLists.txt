@@ -1,6 +1,8 @@
 set(CLIENT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/client.cpp")
 
 add_executable(${CLIENT_EXECUTABLE_NAME} ${CLIENT_SOURCES})
+include_directories(${RapidJSON_SOURCE_DIR}/include
+                    ${cxxopts_SOURCE_DIR}/include)
 
 target_link_libraries(
     ${EXECUTABLE_NAME}

@@ -1,4 +1,4 @@
-# currently not used due flask is installed via pip module and not pip app
 # pip freeze > requirements.txt
 #Flask==2.0.1
 #requests==2.25.1
+numpy>=1.24.3
