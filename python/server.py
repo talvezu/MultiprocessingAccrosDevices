@@ -37,7 +37,7 @@ def generate_data():
 def register_for_vector_generating_service():
     client_id = request.form.get('client_id')
     frequency = request.form.get('frequency')
-    sleep_time = 10 / float(frequency)  # 10**9
+    sleep_time = 1 / float(frequency)  # Sleep time between each data stream
 
     if client_id:
         # Create a response generator for the client
@@ -45,38 +45,28 @@ def register_for_vector_generating_service():
             """Generator function to simulate streaming data"""
             response_data = {
                 'status': 'success',
-                'message': 'Registered for vector stream'
+                'message': 'Registered for vector stream',
+                'data': [0] * vector_length
             }
-            response_json = json.dumps(response_data)
-
-            yield response_json.encode('utf-8')  # Yield the JSON response
 
             while True:
                 vector = np.random.normal(size=vector_length)
                 vector_list = vector.tolist()  # Convert NumPy array to Python list
-                vector_json = json.dumps(vector_list)
-                # Yield the vector as JSON serialized string
-                yield vector_json.encode('utf-8')
+                response_data['data'] = vector_list
 
-        response = Response(
-            stream_with_context(generate_vector()),
-            mimetype='application/octet-stream')  # Set the response mimetype as raw binary
+                response_json = json.dumps(response_data)
 
-        time.sleep(sleep_time)
+                yield response_json.encode('utf-8')
+
+                time.sleep(sleep_time)
+
+
+        # Set the response mimetype as raw binary
+        response = Response(stream_with_context(generate_vector()), mimetype='application/octet-stream')
+
         return response
 
     return 'Invalid request'
-
-
-def generate_vector(sleep_time):
-    """Generator function to simulate streaming data"""
-    while True:
-        print("yield")
-        # yield np.random.normal(size=vector_length)  # generate random vector
-        vec = np.random.normal(size=vector_length)  # generate random vector
-        print(vec)
-        yield vec
-        time.sleep(sleep_time)
 
 
 if __name__ == '__main__':

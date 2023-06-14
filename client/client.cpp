@@ -1,11 +1,19 @@
+#include "client_utils/utils.h"
 #include <boost/asio.hpp>
+#include <chrono>
 #include <cxxopts.hpp>
+#include <deque>
 #include <iostream>
 #include <rapidjson/document.h>
 #include <string>
-
+#include <thread>
+//using namespace std::chrono;
+std::deque<tp> time_of_arrivals;
 
 using boost::asio::ip::tcp;
+
+static const uint32_t samples_window_span(10);
+static const uint32_t vector_to_matrix(50);
 
 int main(int argc, char *argv[])
 {
@@ -22,6 +30,21 @@ int main(int argc, char *argv[])
 
     std::string client_id = result["client_id"].as<std::string>();
     std::string frequency = result["frequency"].as<std::string>();
+
+    // initialize queue with samples_window_span elements
+    tp now_tp = get_current_tp();
+    double delta_in_microseconds = convert_hz_to_microseconds(frequency);
+    microseconds duration_to_add(static_cast<long long>(delta_in_microseconds));
+    std::chrono::microseconds total_duration =
+        duration_to_add * samples_window_span;
+
+    for (int i = 0; i < samples_window_span; ++i)
+    {
+        time_of_arrivals.push_front(now_tp += duration_to_add);
+    }
+
+    std::this_thread::sleep_for(total_duration);
+
     try
     {
         boost::asio::io_context io_context;
@@ -48,9 +71,12 @@ int main(int argc, char *argv[])
         request += "Connection: close\r\n\r\n";
         request += form_data;
         boost::asio::write(socket, boost::asio::buffer(request));
+
         // Read the response from the server
         boost::system::error_code error;
         boost::asio::streambuf response;
+
+        // Store the received chunks
         std::string response_data;
 
         while (boost::asio::read(socket,
@@ -63,36 +89,71 @@ int main(int argc, char *argv[])
                 boost::asio::buffer_cast<const char *>(response.data());
             response.consume(response.size());
 
-            // Print the received data
-            std::cout << response_data << std::endl;
 
-            // Parse the JSON response
-            // Assuming you have a JSON parsing library, you can use it to extract the vector data from the response
-            // For example, if you're using a library like RapidJSON:
-
-            rapidjson::Document document;
-            document.Parse(response_data.c_str());
-
-            // Access the vector data from the JSON document
-            if (document.IsArray())
+            // Check if the response data ends with a complete JSON object
+            size_t lastBracketIndex = response_data.rfind('}');
+            if (lastBracketIndex != std::string::npos)
             {
-                for (const auto &value : document.GetArray())
+                std::string completeJsonData =
+                    response_data.substr(0, lastBracketIndex + 1);
+
+                // Parse the JSON object
+                rapidjson::Document document;
+                document.Parse(completeJsonData.c_str());
+
+                // Process the parsed JSON data
+                if (!document.HasParseError() && document.IsObject())
                 {
-                    if (value.IsNumber())
+                    if (document.HasMember("data") &&
+                        document["data"].IsArray())
                     {
-                        double number = value.GetDouble();
-                        // Process the number as needed
-                        std::cout << number << " \n";
+                        const rapidjson::Value &dataArray = document["data"];
+                        std::vector<double> receivedData;
+
+                        for (rapidjson::SizeType i = 0; i < dataArray.Size();
+                             i++)
+                        {
+                            const rapidjson::Value &data = dataArray[i];
+                            if (data.IsDouble())
+                            {
+                                double value = data.GetDouble();
+                                receivedData.push_back(value);
+                            }
+                        }
+
+                        // Print the received data
+                        std::cout << "Received data: ";
+                        for (const double &value : receivedData)
+                        {
+                            std::cout << value << " ";
+                        }
+                        std::cout << std::endl;
+                        auto current_tp = get_current_tp();
+                        auto prev_tp = time_of_arrivals.front();
+                        auto olders_tp = time_of_arrivals.back();
+
+                        time_of_arrivals.push_front(current_tp);
+                        time_of_arrivals.pop_back();
+
+                        //log_results(current_tp, prev_tp, olders_tp, samples_window_span);
+                        log_results(current_tp, prev_tp, olders_tp);
                     }
                 }
+
+
+                // Clear the response data after processing
+                response_data.clear();
             }
-            if (error == boost::asio::error::eof)
-                break;
+        }
+
+        if (error != boost::asio::error::eof)
+        {
+            throw boost::system::system_error(error);
         }
     }
-    catch (const std::exception &e)
+    catch (std::exception &e)
     {
-        std::cerr << "Exception: " << e.what() << std::endl;
+        std::cerr << "Exception: " << e.what() << "\n";
     }
 
     return 0;
