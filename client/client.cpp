@@ -8,13 +8,19 @@
 #include <string>
 #include <thread>
 //using namespace std::chrono;
-std::deque<tp> time_of_arrivals;
 
 using boost::asio::ip::tcp;
 
-static const uint32_t samples_window_span(10);
-static const uint32_t vector_to_matrix(50);
+//should be constexpr
+static const uint32_t samples_window_span(100);
+static const uint32_t vector_to_matrix(samples_window_span);
+static uint64_t total_vectors_arrived(0);
+std::vector<double> single_matrix_arrivals(vector_to_matrix);
 
+std::deque<tp> time_of_arrivals;
+std::vector<double> deltas_of_arrivals(samples_window_span);
+std::vector<double> curr_vector;
+std::vector<std::vector<double>> curr_matrix;
 int main(int argc, char *argv[])
 {
     cxxopts::Options options("YourProgram", "Description of your program");
@@ -126,6 +132,7 @@ int main(int argc, char *argv[])
                         for (const double &value : receivedData)
                         {
                             std::cout << value << " ";
+                            curr_vector.push_back(value);
                         }
                         std::cout << std::endl;
                         auto current_tp = get_current_tp();
@@ -137,6 +144,24 @@ int main(int argc, char *argv[])
 
                         //log_results(current_tp, prev_tp, olders_tp, samples_window_span);
                         log_results(current_tp, prev_tp, olders_tp);
+
+                        deltas_of_arrivals.push_back(
+                            get_duration(current_tp, prev_tp));
+                        total_vectors_arrived++;
+                        curr_matrix.push_back(curr_vector);
+                        curr_vector.clear();
+                        if (0 == total_vectors_arrived % vector_to_matrix)
+                        {
+                            auto mean = calculate_mean(deltas_of_arrivals);
+                            auto deviation =
+                                calculate_standard_deviation(deltas_of_arrivals,
+                                                             mean);
+                            std::cout << "matrix statistics: mean:" << mean
+                                      << " deviation: " << deviation << "\n";
+                            deltas_of_arrivals.clear();
+                            // calculare mean and standard veriation of the matrix;
+                            curr_matrix.clear();
+                        }
                     }
                 }
 
