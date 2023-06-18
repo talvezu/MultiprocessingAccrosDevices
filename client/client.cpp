@@ -152,12 +152,16 @@ int main(int argc, char *argv[])
                         curr_vector.clear();
                         if (0 == total_vectors_arrived % vector_to_matrix)
                         {
-                            auto mean = calculate_mean(deltas_of_arrivals);
-                            auto deviation =
-                                calculate_standard_deviation(deltas_of_arrivals,
-                                                             mean);
-                            std::cout << "matrix statistics: mean:" << mean
-                                      << " deviation: " << deviation << "\n";
+                            auto last_matrix_arrival_mean =
+                                calculate_mean(deltas_of_arrivals);
+                            auto last_matrix_arrival_deviation =
+                                calculate_standard_deviation(
+                                    deltas_of_arrivals,
+                                    last_matrix_arrival_mean);
+                            std::cout << "matrix statistics: arrival mean:"
+                                      << last_matrix_arrival_mean
+                                      << " arrival deviation: "
+                                      << last_matrix_arrival_deviation << "\n";
                             deltas_of_arrivals.clear();
                             // calculare mean and standard veriation of the matrix;
                             curr_matrix.clear();
