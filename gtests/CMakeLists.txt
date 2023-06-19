@@ -6,7 +6,9 @@ if(ENABLE_TESTING)
     # files from client/client_utils are read directly,
     # same for linking fmt::fmt and spdlog::spdlog
     ##############
-    set(GTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/gtest_timing.cpp" "../client/client_utils/utils.cpp")
+    set(GTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/gtest_timing.cpp"
+                      "${CMAKE_CURRENT_SOURCE_DIR}/gtest_mean_stdv.cpp"
+                      "../client/client_utils/utils.cpp")
     add_executable(${UNIT_GTEST_NAME} ${GTEST_SOURCES})
 
     #already included from rapid jason

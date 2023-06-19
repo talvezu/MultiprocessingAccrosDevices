@@ -3,7 +3,9 @@
 #include <chrono>
 #include <cxxopts.hpp>
 #include <deque>
+#include <fstream>
 #include <iostream>
+#include <numeric>
 #include <rapidjson/document.h>
 #include <string>
 #include <thread>
@@ -12,6 +14,7 @@
 using boost::asio::ip::tcp;
 
 //should be constexpr
+static const std::string outfile("statistics.txt");
 static const uint32_t samples_window_span(100);
 static const uint32_t vector_to_matrix(samples_window_span);
 static uint64_t total_vectors_arrived(0);
@@ -19,8 +22,11 @@ std::vector<double> single_matrix_arrivals(vector_to_matrix);
 
 std::deque<tp> time_of_arrivals;
 std::vector<double> deltas_of_arrivals(samples_window_span);
+std::vector<double> matrix_main(vector_to_matrix, 0);
 std::vector<double> curr_vector;
 std::vector<std::vector<double>> curr_matrix;
+std::ofstream stat_file(outfile);
+
 int main(int argc, char *argv[])
 {
     cxxopts::Options options("YourProgram", "Description of your program");
@@ -142,6 +148,7 @@ int main(int argc, char *argv[])
                         time_of_arrivals.push_front(current_tp);
                         time_of_arrivals.pop_back();
 
+
                         //log_results(current_tp, prev_tp, olders_tp, samples_window_span);
                         log_results(current_tp, prev_tp, olders_tp);
 
@@ -150,6 +157,8 @@ int main(int argc, char *argv[])
                         total_vectors_arrived++;
                         curr_matrix.push_back(curr_vector);
                         curr_vector.clear();
+
+                        // we have completed a matrix a time to calculate stdv and mean for matrix
                         if (0 == total_vectors_arrived % vector_to_matrix)
                         {
                             auto last_matrix_arrival_mean =
@@ -162,9 +171,57 @@ int main(int argc, char *argv[])
                                       << last_matrix_arrival_mean
                                       << " arrival deviation: "
                                       << last_matrix_arrival_deviation << "\n";
+
                             deltas_of_arrivals.clear();
+                            //last_matrix_arrival_mean
+
                             // calculare mean and standard veriation of the matrix;
+                            // standard deviation of a matrix is a std of "rows" meaning index x for each vector
+                            std::vector<double> mean_vector;
+                            std::vector<double> stv_vector;
+                            auto stat_func =
+                                [&mean_vector,
+                                 &stv_vector](const std::vector<double> &vec) {
+                                    mean_vector.push_back(
+                                        std::accumulate(vec.begin(),
+                                                        vec.end(),
+                                                        0.0,
+                                                        [](double a, double b) {
+                                                            return a + b;
+                                                        }) /
+                                        vector_to_matrix);
+                                    stv_vector.push_back(
+                                        calculate_standard_deviation(
+                                            vec,
+                                            mean_vector.back()));
+                                };
+                            std::for_each(curr_matrix.begin(),
+                                          curr_matrix.end(),
+                                          stat_func);
+
+
                             curr_matrix.clear();
+
+                            // writing to a file,  might be better to do it in json
+
+                            stat_file << "matrix statistics:"
+                                         "\n\tarrival mean:"
+                                      << last_matrix_arrival_mean
+                                      << " micro seconds\n\tarrival deviation: "
+                                      << last_matrix_arrival_deviation << "\n";
+                            stat_file << "mean of matrix as a vector:\n";
+                            for (const auto &element : mean_vector)
+                            {
+                                stat_file << element << " ";
+                            }
+                            stat_file << "\n";
+                            stat_file << "standard variation of matrix as a "
+                                         "vector:\n";
+                            for (const auto &element : stv_vector)
+                            {
+                                stat_file << element << " ";
+                            }
+                            stat_file << "\n\n";
                         }
                     }
                 }
